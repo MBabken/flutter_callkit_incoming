@@ -116,28 +116,9 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
 
             if let getArgs = args as? [String: Any] {
                 self.data = Data(args: getArgs)
-                showCallkitIncoming(
-                    self.data!,
-                    fromPushKit: false,
-                    completion: { error in
-                        if let error = error {
-                            print("FlutterMethodCall.showCallkitIncoming", "error \(error) |> \(String(describing: error.localizedFailureReason))")
-
-                            result(
-                                FlutterError(
-                                    code: String(error.code),
-                                    message: error.localizedDescription,
-                                    details: error.localizedFailureReason
-                                )
-                            )
-
-                            return
-                        }
-
-                        result("OK")
-                    }
-                )
+                showCallkitIncoming(self.data!, fromPushKit: false)
             }
+            result("OK")
             break
         case "showMissCallNotification":
             result("OK")
@@ -158,53 +139,11 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
                 result("OK")
                 return
             }
-            
-            var errorDetails: String? = nil
-
-            if (self.isFromPushKit) {
-                errorDetails = "from PushKit"
-            } else {
-                if let getArgs = args as? [String: Any] {
-                    let id = getArgs["id"] as? String
-                    if let id = id {
-                        self.data?.uuid = id
-                    }
-                }
+            if let getArgs = args as? [String: Any] {
+                let data = Data(args: getArgs)
+                self.endCall(data)
             }
-            
-            if let data = data {
-                do {
-                    try self.endCall(data)
-                    result("OK")
-                } catch InvalidError.uuid {
-                    result(
-                        FlutterError(
-                            code: "invalid_error",
-                            message: "Invalid UUID",
-                            details: errorDetails
-                        )
-                    )
-                } catch {
-                    // exhaustive
-                    print("Unexpected error: \(error)")
-                    result(
-                        FlutterError(
-                            code: "unknown_error",
-                            message: String(describing: error),
-                            details: errorDetails
-                        )
-                    )
-                }
-            } else {
-                result(
-                    FlutterError(
-                        code: "no_data",
-                        message: "No data",
-                        details: errorDetails
-                    )
-                )
-                return
-            }
+            result("OK")
 
             break
         case "muteCall":
@@ -214,7 +153,7 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
                 result("OK")
                 return
             }
-            
+
             self.muteCall(callId, isMuted: isMuted)
             result("OK")
             break
@@ -250,14 +189,8 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
                 self.connectedCall(self.data!)
             } else {
                 if let getArgs = args as? [String: Any] {
-                    let id = getArgs["id"] as? String
-                    if let id = id {
-                        self.data?.uuid = id
-                    }
-
+                    self.data = Data(args: getArgs)
                     self.connectedCall(self.data!)
-                } else if let data = data {
-                    self.connectedCall(data)
                 }
             }
             result("OK")
@@ -288,7 +221,7 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
                 result("OK")
                 return
             }
-            
+
             self.silenceEvents = silence
             result("OK")
             break;
@@ -311,16 +244,16 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             result(FlutterMethodNotImplemented)
         }
     }
-    
+
     @objc public func setDevicePushTokenVoIP(_ deviceToken: String) {
         UserDefaults.standard.set(deviceToken, forKey: devicePushTokenVoIP)
         self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_DID_UPDATE_DEVICE_PUSH_TOKEN_VOIP, ["deviceTokenVoIP":deviceToken])
     }
-    
+
     @objc public func getDevicePushTokenVoIP() -> String {
         return UserDefaults.standard.string(forKey: devicePushTokenVoIP) ?? ""
     }
-    
+
     @objc public func getAcceptedCall() -> Data? {
         NSLog("Call data ids \(String(describing: data?.uuid)) \(String(describing: answerCall?.uuid.uuidString))")
         if data?.uuid.lowercased() == answerCall?.uuid.uuidString.lowercased() {
@@ -328,40 +261,33 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         }
         return nil
     }
-    
-    @objc public func showCallkitIncoming(_ data: Data, fromPushKit: Bool, completion: ((NSError?) -> Void)?) {
+
+    @objc public func showCallkitIncoming(_ data: Data, fromPushKit: Bool) {
         self.isFromPushKit = fromPushKit
         if(fromPushKit){
             self.data = data
         }
-        
+
         let nativeHandle: CXHandle
         if (data.phoneNumber.isEmpty) {
             nativeHandle = CXHandle(type: .generic, value: data.getEncryptHandle())
         } else {
             nativeHandle = CXHandle(type: .phoneNumber, value: data.phoneNumber)
         }
-        
+
         let callUpdate = CXCallUpdate()
         callUpdate.remoteHandle = nativeHandle
         callUpdate.supportsDTMF = data.supportsDTMF
-        callUpdate.supportsHolding = data.supportsHolding
+        callUpdate.supportsHolding = false
         callUpdate.supportsGrouping = data.supportsGrouping
         callUpdate.supportsUngrouping = data.supportsUngrouping
         callUpdate.hasVideo = data.type > 0 ? true : false
         callUpdate.localizedCallerName = data.nameCaller
-        
+
         initCallkitProvider(data)
-        
+
         let uuid = UUID(uuidString: data.uuid)
 
-        if (fromPushKit) {
-            self.sendEvent(
-                SwiftFlutterCallkitIncomingPlugin.PUSH_KIT_INCOMING_CALL,
-                data.toJSON()
-            )
-        }
-        
         activateAudioSession()
 
         self.sharedProvider?.reportNewIncomingCall(with: uuid!, update: callUpdate) { error in
@@ -372,11 +298,9 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
                 self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_INCOMING, data.toJSON())
                 self.endCallNotExist(data)
             }
-
-            completion?(error as NSError?)
         }
     }
-    
+
     @objc public func startCall(_ data: Data, fromPushKit: Bool) {
         self.isFromPushKit = fromPushKit
         if(fromPushKit){
@@ -385,7 +309,7 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         initCallkitProvider(data)
         self.callManager.startCall(data)
     }
-    
+
     @objc public func muteCall(_ callId: String, isMuted: Bool) {
         guard let callId = UUID(uuidString: callId),
               let call = self.callManager.callWithUUID(uuid: callId) else {
@@ -397,7 +321,7 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             self.callManager.muteCall(call: call, isMuted: isMuted)
         }
     }
-    
+
     @objc public func holdCall(_ callId: String, onHold: Bool) {
         guard let callId = UUID(uuidString: callId),
               let call = self.callManager.callWithUUID(uuid: callId) else {
@@ -409,19 +333,15 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             self.callManager.holdCall(call: call, onHold: onHold)
         }
     }
-    
-    @objc public func endCall(_ data: Data) throws {
+
+    @objc public func endCall(_ data: Data) {
         var uuid: UUID? = nil
 
-        if (self.isFromPushKit) {
-            uuid = UUID(uuidString: self.data?.uuid ?? data.uuid)
-        } else {
-            uuid = UUID(uuidString: data.uuid)
-        }
+        uuid = UUID(uuidString: data.uuid)
 
         guard uuid != nil else {
             deactivateAudioSession()
-            throw InvalidError.uuid
+            return
         }
         
         let call = Call(uuid: uuid!, data: data)
