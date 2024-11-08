@@ -344,11 +344,10 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             return
         }
         
-        let calls = activeCalls()
-        let callsEmpty = calls.isEmpty;
+
         let call = self.callManager.callWithUUID(uuid: UUID(uuidString: data.uuid)!)
 
-        if (callsEmpty || (call != nil && self.answerCall == nil && self.outgoingCall == nil)) {
+        if (call == nil || (call != nil && self.answerCall == nil && self.outgoingCall == nil)) {
             self.callEndTimeout(data)
         } else {
             let call = Call(uuid: uuid!, data: data)
@@ -618,11 +617,13 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         if (self.answerCall == nil && self.outgoingCall == nil) {
             sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_DECLINE, self.data?.toJSON())
             if let appDelegate = UIApplication.shared.delegate as? CallkitIncomingAppDelegate {
-                appDelegate.onDecline(call, action)
-                appDelegate.performRequestTerminated("/decline") { result in
+                let json = ["id": call.uuid.uuidString] as [String: Any]
+                //appDelegate.onDecline(call, action)
+                appDelegate.performRequestTerminated("/decline", parameters: json) { result in
                     switch result {
                     case .success(let data):
                         print("Received data: \(data)")
+                        action.fulfill()
 
                     case .failure(let error):
                         print("Error: \(error.localizedDescription)")
