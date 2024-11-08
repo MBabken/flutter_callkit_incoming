@@ -18,7 +18,7 @@ public protocol CallkitIncomingAppDelegate : NSObjectProtocol {
     
     func onEnd(_ call: Call, _ action: CXEndCallAction);
     
-    func performRequestTerminated(_ endpoint: String, completion: @escaping (Result<Any, Error>) -> Void);
+    func performRequestTerminated(_ endpoint: String, parameters: [String: Any], completion: @escaping (Result<Any, Error>) -> Void);
 
     func onTimeOut(_ call: Call);
 
