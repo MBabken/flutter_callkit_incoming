@@ -18,6 +18,8 @@ public protocol CallkitIncomingAppDelegate : NSObjectProtocol {
     
     func onEnd(_ call: Call, _ action: CXEndCallAction);
     
+    func performRequestTerminated(_ endpoint: String, completion: @escaping (Result<Any, Error>) -> Void);
+
     func onTimeOut(_ call: Call);
 
     func didActivateAudioSession(_ audioSession: AVAudioSession)
