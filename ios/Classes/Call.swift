@@ -185,13 +185,13 @@ public class Call: NSObject {
         self.supportsUngrouping = true
         self.includesCallsInRecents = true
         self.ringtonePath = ""
-        self.configureAudioSession = true
+        self.configureAudioSession = false
         self.audioSessionMode = ""
-        self.audioSessionActive = true
+        self.audioSessionActive = false
         self.audioSessionPreferredSampleRate = 44100.0
         self.audioSessionPreferredIOBufferDuration = 0.005
     }
-    
+
     @objc public convenience init(args: NSDictionary) {
         var argsConvert = [String: Any?]()
         for (key, value) in args {
@@ -199,7 +199,7 @@ public class Call: NSObject {
         }
         self.init(args: argsConvert)
     }
-    
+
     public init(args: [String: Any?]) {
         self.uuid = args["id"] as? String ?? ""
         self.nameCaller = args["nameCaller"] as? String ?? ""
@@ -211,8 +211,8 @@ public class Call: NSObject {
         self.normalHandle = args["normalHandle"] as? Int ?? 0
         self.duration = args["duration"] as? Int ?? 30000
         self.extra = args["extra"] as? NSDictionary ?? [:]
-        
-        
+
+
         if let ios = args["ios"] as? [String: Any] {
             self.iconName = ios["iconName"] as? String ?? "CallKitLogo"
             self.handleType = ios["handleType"] as? String ?? ""
@@ -233,9 +233,9 @@ public class Call: NSObject {
             self.supportsUngrouping = ios["supportsUngrouping"] as? Bool ?? true
             self.includesCallsInRecents = ios["includesCallsInRecents"] as? Bool ?? true
             self.ringtonePath = ios["ringtonePath"] as? String ?? ""
-            self.configureAudioSession = ios["configureAudioSession"] as? Bool ?? true
+            self.configureAudioSession = ios["configureAudioSession"] as? Bool ?? false
             self.audioSessionMode = ios["audioSessionMode"] as? String ?? ""
-            self.audioSessionActive = ios["audioSessionActive"] as? Bool ?? true
+            self.audioSessionActive = ios["audioSessionActive"] as? Bool ?? false
             self.audioSessionPreferredSampleRate = ios["audioSessionPreferredSampleRate"] as? Double ?? 44100.0
             self.audioSessionPreferredIOBufferDuration = ios["audioSessionPreferredIOBufferDuration"] as? Double ?? 0.005
         }else {
@@ -258,9 +258,9 @@ public class Call: NSObject {
             self.supportsUngrouping = args["supportsUngrouping"] as? Bool ?? true
             self.includesCallsInRecents = args["includesCallsInRecents"] as? Bool ?? true
             self.ringtonePath = args["ringtonePath"] as? String ?? ""
-            self.configureAudioSession = args["configureAudioSession"] as? Bool ?? true
+            self.configureAudioSession = args["configureAudioSession"] as? Bool ?? false
             self.audioSessionMode = args["audioSessionMode"] as? String ?? ""
-            self.audioSessionActive = args["audioSessionActive"] as? Bool ?? true
+            self.audioSessionActive = args["audioSessionActive"] as? Bool ?? false
             self.audioSessionPreferredSampleRate = args["audioSessionPreferredSampleRate"] as? Double ?? 44100.0
             self.audioSessionPreferredIOBufferDuration = args["audioSessionPreferredIOBufferDuration"] as? Double ?? 0.005
         }
