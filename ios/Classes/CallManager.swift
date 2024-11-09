@@ -133,7 +133,7 @@ class CallManager: NSObject {
     }
     
     
-    private func getHandleType(_ handleType: String?) -> CXHandle.HandleType {
+    func getHandleType(_ handleType: String?) -> CXHandle.HandleType {
         var typeDefault = CXHandle.HandleType.generic
         switch handleType {
         case "number":

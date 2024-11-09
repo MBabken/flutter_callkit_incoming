@@ -268,15 +268,11 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             self.data = data
         }
 
-        let nativeHandle: CXHandle
-        if (data.phoneNumber.isEmpty) {
-            nativeHandle = CXHandle(type: .generic, value: data.getEncryptHandle())
-        } else {
-            nativeHandle = CXHandle(type: .phoneNumber, value: data.phoneNumber)
-        }
+        var handle: CXHandle?
+        handle = CXHandle(type: self.callManager.getHandleType(data.handleType), value: data.getEncryptHandle())
 
         let callUpdate = CXCallUpdate()
-        callUpdate.remoteHandle = nativeHandle
+        callUpdate.remoteHandle = handle
         callUpdate.supportsDTMF = data.supportsDTMF
         callUpdate.supportsHolding = false
         callUpdate.supportsGrouping = data.supportsGrouping
